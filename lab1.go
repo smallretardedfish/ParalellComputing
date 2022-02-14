@@ -7,11 +7,41 @@ import (
 	"time"
 )
 
+type Stat struct {
+	size int
+	t    time.Duration
+}
+
+type Storage struct {
+	Mtx  sync.RWMutex
+	Dict map[int][]Stat
+}
+
+func (s *Storage) Add(count int, stat Stat) {
+	s.Mtx.Lock()
+	if _, ok := s.Dict[count]; !ok {
+		s.Dict[count] = make([]Stat, 0)
+	}
+	s.Dict[count] = append(s.Dict[count], stat)
+	s.Mtx.Unlock()
+}
+
+func (s *Storage) String() string {
+	return fmt.Sprintf("%v", s.Dict)
+}
+
+func NewStorage() *Storage {
+	return &Storage{
+		Mtx:  sync.RWMutex{},
+		Dict: make(map[int][]Stat),
+	}
+}
+
 //Заповнити квадратну матрицю випадковими числами. На побічній діагоналі розмістити мінімальний елемент стовпчика.
-func measureTimeParalell(f func()) {
+func measureTimeParalell(f func()) time.Duration {
 	start := time.Now()
 	f()
-	log.Println("execution took: ", time.Since(start))
+	return time.Since(start)
 }
 
 func estimateTime(numOfThreads, size int) func() {
@@ -23,7 +53,7 @@ func estimateTime(numOfThreads, size int) func() {
 
 func fillSlice(slice []int, maxVal int) {
 	for i := range slice {
-		(slice)[i] = 1
+		slice[i] = 1
 	}
 }
 
@@ -59,13 +89,12 @@ func fillMatrixParallel(matr [][]int, maxVal int, numOfThreads int) {
 			step = size / numOfThreads
 		}
 		end = end + step
-
-		go func() { // OKAY LET`S GO
+		part := matr[start:end]
+		go func(part [][]int) { // OKAY LET`S GO
 			defer wg.Done()
-
-			fillMatrix(matr[start:end], maxVal)
-		}()
-		fmt.Println(start, " - ", end)
+			fillMatrix(part, maxVal)
+		}(part)
+		//fmt.Println(start, " - ", end)
 		start = end
 	}
 	wg.Wait()
@@ -105,7 +134,7 @@ func NewMatrix(size int) [][]int {
 }
 
 //WriteTable populates matrices
-func WriteTable() {
+func WriteTable(s *Storage) {
 	matrixSizes := []int{
 		5, 50, 250, 300, 350,
 		400, 500, 600, 650, 700,
@@ -121,9 +150,11 @@ func WriteTable() {
 	for _, size := range matrixSizes {
 		Array2DParallel := NewMatrix(size)
 		for _, numOfThreads := range amountOfGoroutines {
-			measureTimeParalell(func() {
+			t := measureTimeParalell(func() {
 				fillMatrixParallel(Array2DParallel, 100, numOfThreads)
 			})
+			s.Add(numOfThreads, Stat{size, t})
+			//fmt.Println(size)
 		}
 	}
 }
@@ -168,12 +199,15 @@ func FillManually() error {
 }
 
 func main() {
-	err := FillManually()
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	//err := FillManually()
+	//if err != nil {
+	//	log.Println(err)
+	//	return
+	//}
 	//plotting.MakePlot()
-	//time.Sleep(time.Second * 1)
-	//WriteTable()
+
+	storage := NewStorage()
+	WriteTable(storage)
+	time.Sleep(time.Second * 3)
+	fmt.Println(storage)
 }
