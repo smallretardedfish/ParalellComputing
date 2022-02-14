@@ -3,16 +3,19 @@ package main
 import (
 	"fmt"
 	"log"
-	"math/rand"
 	"sync"
 	"time"
 )
 
 //Заповнити квадратну матрицю випадковими числами. На побічній діагоналі розмістити мінімальний елемент стовпчика.
+func measureTimeParalell(f func()) {
+	start := time.Now()
+	f()
+	log.Println("execution took: ", time.Since(start))
+}
 
 func estimateTime(numOfThreads, size int) func() {
 	start := time.Now()
-	//log.Println(start)
 	return func() {
 		log.Println(size, numOfThreads, time.Since(start))
 	}
@@ -20,13 +23,13 @@ func estimateTime(numOfThreads, size int) func() {
 
 func fillSlice(slice []int, maxVal int) {
 	for i := range slice {
-		slice[i] = rand.Int()%maxVal + 1
+		(slice)[i] = 1
 	}
 }
 
 func fillMatrix(matr [][]int, maxVal int) {
-	size := len(matr)
-	defer estimateTime(1, size)()
+	//	size := len(matr)
+	//	defer estimateTime(1, size)()
 	for i := range matr {
 		fillSlice(matr[i], maxVal)
 	}
@@ -38,29 +41,31 @@ func FillMatrix(matr [][]int, maxVal int) {
 }
 
 func fillMatrixParallel(matr [][]int, maxVal int, numOfThreads int) {
-	var wg sync.WaitGroup
-	size := len(matr)
-	defer estimateTime(numOfThreads, size)()
 	var (
+		wg    sync.WaitGroup
 		step  int
 		start int
 		end   int
 	)
+	wg.Add(numOfThreads)
+	size := len(matr)
+	//defer estimateTime(numOfThreads, size)()
+
 	diff := numOfThreads - size%numOfThreads
 	for i := 0; i < numOfThreads; i++ {
-		wg.Add(1)
 		if i >= diff {
 			step = size/numOfThreads + 1
 		} else {
 			step = size / numOfThreads
 		}
 		end = end + step
-		partOfMatr := matr[start:end]
 
 		go func() { // OKAY LET`S GO
 			defer wg.Done()
-			fillMatrix(partOfMatr, maxVal)
+
+			fillMatrix(matr[start:end], maxVal)
 		}()
+		fmt.Println(start, " - ", end)
 		start = end
 	}
 	wg.Wait()
@@ -99,7 +104,7 @@ func NewMatrix(size int) [][]int {
 	return array
 }
 
-//WriteTable populates csv file for future plotting in Excel
+//WriteTable populates matrices
 func WriteTable() {
 	matrixSizes := []int{
 		5, 50, 250, 300, 350,
@@ -110,12 +115,15 @@ func WriteTable() {
 		1, 2, 3, 4, 5,
 		6, 7, 8, 9, 10,
 		11, 12, 13, 14, 15,
-		16, 17, 18, 19, 20}
+		16, 17, 18, 19, 20,
+	}
 
 	for _, size := range matrixSizes {
 		Array2DParallel := NewMatrix(size)
 		for _, numOfThreads := range amountOfGoroutines {
-			fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+			measureTimeParalell(func() {
+				fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+			})
 		}
 	}
 }
@@ -138,13 +146,18 @@ func FillManually() error {
 		}
 		Array2DParallel := NewMatrix(size)
 		fmt.Println("parallel filling goes here: ")
-		fillMatrixParallel(Array2DParallel, 100, numOfThreads)
-		//time.Sleep(time.Second * 2)
+		//fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+		measureTimeParalell(func() {
+			fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+		})
+		time.Sleep(time.Second * 2)
 		//print2DSlice(Array2DParallel)
 
 		Array2D := NewMatrix(size)
 		fmt.Println("sequential filling goes here: ")
-		fillMatrix(Array2D, 100)
+		measureTimeParalell(func() {
+			fillMatrix(Array2D, 100)
+		})
 		//print2DSlice(Array2D)
 
 		//fmt.Println("placing column`s minimums on the anti-diagonal goes here: ")
@@ -160,5 +173,7 @@ func main() {
 		log.Println(err)
 		return
 	}
+	//plotting.MakePlot()
+	//time.Sleep(time.Second * 1)
 	//WriteTable()
 }
