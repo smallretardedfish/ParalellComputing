@@ -1,9 +1,10 @@
-module ParallelComputing
+module github.com/ParallelComputing
 
 go 1.17
 
 require (
 	gioui.org v0.0.0-20210308172011-57750fc8a0a6 // indirect
+	github.com/Arafatk/glot v0.0.0-20180312013246-79d5219000f0 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
 	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/go-fonts/liberation v0.2.0 // indirect

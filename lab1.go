@@ -2,43 +2,15 @@ package main
 
 import (
 	"fmt"
+	"github.com/ParallelComputing/plotting"
 	"log"
+	"strconv"
 	"sync"
 	"time"
 )
 
-type Stat struct {
-	size int
-	t    time.Duration
-}
-
-type Storage struct {
-	Mtx  sync.RWMutex
-	Dict map[int][]Stat
-}
-
-func (s *Storage) Add(count int, stat Stat) {
-	s.Mtx.Lock()
-	if _, ok := s.Dict[count]; !ok {
-		s.Dict[count] = make([]Stat, 0)
-	}
-	s.Dict[count] = append(s.Dict[count], stat)
-	s.Mtx.Unlock()
-}
-
-func (s *Storage) String() string {
-	return fmt.Sprintf("%v", s.Dict)
-}
-
-func NewStorage() *Storage {
-	return &Storage{
-		Mtx:  sync.RWMutex{},
-		Dict: make(map[int][]Stat),
-	}
-}
-
 //Заповнити квадратну матрицю випадковими числами. На побічній діагоналі розмістити мінімальний елемент стовпчика.
-func measureTimeParalell(f func()) time.Duration {
+func measureTimeParallel(f func()) time.Duration {
 	start := time.Now()
 	f()
 	return time.Since(start)
@@ -134,7 +106,7 @@ func NewMatrix(size int) [][]int {
 }
 
 //WriteTable populates matrices
-func WriteTable(s *Storage) {
+func WriteTable(s *plotting.Storage) {
 	matrixSizes := []int{
 		5, 50, 250, 300, 350,
 		400, 500, 600, 650, 700,
@@ -142,18 +114,19 @@ func WriteTable(s *Storage) {
 		1000, 1300, 1500, 2000, 2500}
 	amountOfGoroutines := []int{
 		1, 2, 3, 4, 5,
-		6, 7, 8, 9, 10,
-		11, 12, 13, 14, 15,
-		16, 17, 18, 19, 20,
+		11, 12, 100, 50, 15,
+		200, 500, 750, 2000,
+		5000,
 	}
 
 	for _, size := range matrixSizes {
 		Array2DParallel := NewMatrix(size)
 		for _, numOfThreads := range amountOfGoroutines {
-			t := measureTimeParalell(func() {
+			t := measureTimeParallel(func() {
 				fillMatrixParallel(Array2DParallel, 100, numOfThreads)
 			})
-			s.Add(numOfThreads, Stat{size, t})
+			s.Add(strconv.Itoa(numOfThreads), plotting.Stat{Size: size, T: t})
+			plotting.CreatePlot(s)
 			//fmt.Println(size)
 		}
 	}
@@ -178,7 +151,7 @@ func FillManually() error {
 		Array2DParallel := NewMatrix(size)
 		fmt.Println("parallel filling goes here: ")
 		//fillMatrixParallel(Array2DParallel, 100, numOfThreads)
-		measureTimeParalell(func() {
+		measureTimeParallel(func() {
 			fillMatrixParallel(Array2DParallel, 100, numOfThreads)
 		})
 		time.Sleep(time.Second * 2)
@@ -186,7 +159,7 @@ func FillManually() error {
 
 		Array2D := NewMatrix(size)
 		fmt.Println("sequential filling goes here: ")
-		measureTimeParalell(func() {
+		measureTimeParallel(func() {
 			fillMatrix(Array2D, 100)
 		})
 		//print2DSlice(Array2D)
@@ -206,8 +179,8 @@ func main() {
 	//}
 	//plotting.MakePlot()
 
-	storage := NewStorage()
+	storage := plotting.NewStorage()
 	WriteTable(storage)
 	time.Sleep(time.Second * 3)
-	fmt.Println(storage)
+	//fmt.Println(storage)
 }
