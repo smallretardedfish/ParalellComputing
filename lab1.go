@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ParallelComputing/plotting"
 	"log"
+	"math/rand"
 	"strconv"
 	"sync"
 	"time"
@@ -24,6 +25,8 @@ func estimateTime(numOfThreads, size int) func() {
 }
 
 func fillSlice(slice []int, maxVal int) {
+	//randSource := rand.NewSource(time.Now().UnixNano())
+	//_rand = *rand.New(randSource)
 	for i := range slice {
 		slice[i] = 1
 	}
@@ -32,8 +35,11 @@ func fillSlice(slice []int, maxVal int) {
 func fillMatrix(matr [][]int, maxVal int) {
 	//	size := len(matr)
 	//	defer estimateTime(1, size)()
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range matr {
-		fillSlice(matr[i], maxVal)
+		for j := range matr {
+			matr[i][j] = rng.Intn(maxVal)
+		}
 	}
 }
 func FillMatrix(matr [][]int, maxVal int) {
@@ -62,11 +68,13 @@ func fillMatrixParallel(matr [][]int, maxVal int, numOfThreads int) {
 		}
 		end = end + step
 		part := matr[start:end]
-		go func(part [][]int) { // OKAY LET`S GO
+
+		worker := func(part [][]int) {
 			defer wg.Done()
 			fillMatrix(part, maxVal)
-		}(part)
-		//fmt.Println(start, " - ", end)
+		}
+
+		go worker(part) // OKAY LET`S GO
 		start = end
 	}
 	wg.Wait()
@@ -107,17 +115,8 @@ func NewMatrix(size int) [][]int {
 
 //WriteTable populates matrices
 func WriteTable(s *plotting.Storage) {
-	matrixSizes := []int{
-		5, 50, 250, 300, 350,
-		400, 500, 600, 650, 700,
-		750, 800, 900, 850, 900,
-		1000, 1300, 1500, 2000, 2500}
-	amountOfGoroutines := []int{
-		1, 2, 3, 4, 5,
-		11, 12, 100, 50, 15,
-		200, 500, 750, 2000,
-		5000,
-	}
+	matrixSizes := []int{300, 500, 600, 650, 700, 1000, 2000, 4000, 5000, 7000, 10000}
+	amountOfGoroutines := []int{2, 3, 10, 20, 50, 100, 1000, 10000}
 
 	for _, size := range matrixSizes {
 		Array2DParallel := NewMatrix(size)
@@ -126,10 +125,11 @@ func WriteTable(s *plotting.Storage) {
 				fillMatrixParallel(Array2DParallel, 100, numOfThreads)
 			})
 			s.Add(strconv.Itoa(numOfThreads), plotting.Stat{Size: size, T: t})
-			plotting.CreatePlot(s)
+
 			//fmt.Println(size)
 		}
 	}
+	plotting.CreatePlot(s)
 }
 func FillManually() error {
 	for {
@@ -178,7 +178,6 @@ func main() {
 	//	return
 	//}
 	//plotting.MakePlot()
-
 	storage := plotting.NewStorage()
 	WriteTable(storage)
 	time.Sleep(time.Second * 3)

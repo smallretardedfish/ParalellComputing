@@ -43,7 +43,7 @@ func CreatePlot(storage *Storage) {
 
 	p := plot.New()
 
-	p.Title.Text = ""
+	p.Title.Text = "cool stat of my garbage program"
 	p.X.Label.Text = "size of matrix"
 	p.Y.Label.Text = "rime (ns)"
 	plotItems := make([]interface{}, 0)
@@ -54,7 +54,6 @@ func CreatePlot(storage *Storage) {
 	if err != nil {
 		panic(err)
 	}
-
 	// Save the plot to a PNG file.
 	if err := p.Save(10*vg.Inch, 10*vg.Inch, "plot.png"); err != nil {
 		panic(err)
