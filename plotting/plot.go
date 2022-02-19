@@ -44,8 +44,8 @@ func CreatePlot(storage *Storage) {
 	p := plot.New()
 
 	p.Title.Text = "cool stat of my garbage program"
-	p.X.Label.Text = "size of matrix"
-	p.Y.Label.Text = "rime (ns)"
+	p.X.Label.Text = "Size of matrix"
+	p.Y.Label.Text = "Time"
 	plotItems := make([]interface{}, 0)
 	for key := range storage.Dict {
 		plotItems = append(plotItems, key, plotPoints(storage, key))

@@ -25,26 +25,18 @@ func estimateTime(numOfThreads, size int) func() {
 }
 
 func fillSlice(slice []int, maxVal int) {
-	//randSource := rand.NewSource(time.Now().UnixNano())
-	//_rand = *rand.New(randSource)
 	for i := range slice {
 		slice[i] = 1
 	}
 }
 
 func fillMatrix(matr [][]int, maxVal int) {
-	//	size := len(matr)
-	//	defer estimateTime(1, size)()
+
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for i := range matr {
 		for j := range matr {
 			matr[i][j] = rng.Intn(maxVal)
 		}
-	}
-}
-func FillMatrix(matr [][]int, maxVal int) {
-	for i := range matr {
-		fillSlice(matr[i], maxVal)
 	}
 }
 
@@ -57,7 +49,6 @@ func fillMatrixParallel(matr [][]int, maxVal int, numOfThreads int) {
 	)
 	wg.Add(numOfThreads)
 	size := len(matr)
-	//defer estimateTime(numOfThreads, size)()
 
 	diff := numOfThreads - size%numOfThreads
 	for i := 0; i < numOfThreads; i++ {
@@ -73,26 +64,57 @@ func fillMatrixParallel(matr [][]int, maxVal int, numOfThreads int) {
 			defer wg.Done()
 			fillMatrix(part, maxVal)
 		}
-
 		go worker(part) // OKAY LET`S GO
 		start = end
 	}
 	wg.Wait()
 }
 
-func PlaceMinOfColumnOnDiagonal(matr [][]int) {
-	//estimateTime()()
-	colCount := len(matr[0])
-	rowCount := len(matr)
-	for j := 0; j < colCount; j++ {
-		var min = matr[0][j]
-		for i := 0; i < rowCount; i++ {
-			if matr[i][j] < min {
-				min = matr[i][j]
-			}
+func MinOfSlice(arr []int) int {
+	var min int
+	for i := range arr {
+		if arr[i] < arr[min] {
+			min = i
 		}
+	}
+	return arr[min]
+}
+
+func PlaceMinOfColumnOnDiagonal(matr [][]int, colIdx, step int) {
+	rowCount := len(matr)
+	for j := colIdx; j < colIdx+step; j++ {
+		colItems := make([]int, rowCount)
+		for i := 0; i < len(matr); i++ {
+			colItems[i] = matr[i][j]
+		}
+
+		min := MinOfSlice(colItems)
 		matr[rowCount-j-1][j] = min
 	}
+}
+
+func PlaceMinOfColumnOnDiagonalParallel(matr [][]int, numOfThreads int) {
+	var (
+		wg sync.WaitGroup
+	)
+	wg.Add(numOfThreads)
+	diff := numOfThreads - len(matr)%numOfThreads
+
+	for i, colIdx := 0, 0; i < numOfThreads; i++ {
+		var step int
+		if i >= diff {
+			step = len(matr)/numOfThreads + 1
+		} else {
+			step = len(matr) / numOfThreads
+		}
+		worker := func(matr [][]int, colIdx int, step int) {
+			defer wg.Done()
+			PlaceMinOfColumnOnDiagonal(matr, colIdx, step)
+		}
+		go worker(matr, colIdx, step)
+		colIdx += step
+	}
+	wg.Wait()
 }
 
 func print2DSlice(matrix [][]int) {
@@ -123,10 +145,9 @@ func WriteTable(s *plotting.Storage) {
 		for _, numOfThreads := range amountOfGoroutines {
 			t := measureTimeParallel(func() {
 				fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+				PlaceMinOfColumnOnDiagonalParallel(Array2DParallel, numOfThreads)
 			})
 			s.Add(strconv.Itoa(numOfThreads), plotting.Stat{Size: size, T: t})
-
-			//fmt.Println(size)
 		}
 	}
 	plotting.CreatePlot(s)
@@ -150,12 +171,10 @@ func FillManually() error {
 		}
 		Array2DParallel := NewMatrix(size)
 		fmt.Println("parallel filling goes here: ")
-		//fillMatrixParallel(Array2DParallel, 100, numOfThreads)
+
 		measureTimeParallel(func() {
 			fillMatrixParallel(Array2DParallel, 100, numOfThreads)
 		})
-		time.Sleep(time.Second * 2)
-		//print2DSlice(Array2DParallel)
 
 		Array2D := NewMatrix(size)
 		fmt.Println("sequential filling goes here: ")
@@ -163,10 +182,8 @@ func FillManually() error {
 			fillMatrix(Array2D, 100)
 		})
 		//print2DSlice(Array2D)
-
 		//fmt.Println("placing column`s minimums on the anti-diagonal goes here: ")
 		//PlaceMinOfColumnOnDiagonal(Array2D)
-		////print2DSlice(Array2D)
 	}
 	return nil
 }
@@ -177,9 +194,6 @@ func main() {
 	//	log.Println(err)
 	//	return
 	//}
-	//plotting.MakePlot()
 	storage := plotting.NewStorage()
 	WriteTable(storage)
-	time.Sleep(time.Second * 3)
-	//fmt.Println(storage)
 }
