@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/ParallelComputing/plotting"
+	"github.com/ParallelComputing/lab1/plotting"
 	"log"
 	"math/rand"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -194,6 +195,7 @@ func main() {
 	//	log.Println(err)
 	//	return
 	//}
+	fmt.Println(runtime.NumCPU())
 	storage := plotting.NewStorage()
 	WriteTable(storage)
 }
