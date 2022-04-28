@@ -12,21 +12,26 @@ import (
 const variant = 21
 
 type Result struct {
-	First  int
-	Second int
-	Third  int
+	First  int64
+	Second int64
+	Third  int64
 }
 
-func GenerateSlice(scalar int) []int {
-	rand.Seed(time.Now().Unix())
-	res := make([]int, 100000*scalar)
+func RandInt(lower, upper int64) int64 {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng := upper - lower
+	return int64(r.Intn(int(rng))) + lower
+}
+
+func GenerateSlice(scalar int) []int64 {
+	res := make([]int64, 100000*scalar)
 	for i := range res {
-		res[i] = rand.Intn(1000)
+		res[i] = RandInt(-1000000000000, 49123674982)
 	}
 	return res
 }
 
-func LeastThreeSerial(slice []int) Result {
+func LeastThreeSerial(slice []int64) Result {
 	result := Result{
 		First:  math.MaxInt,
 		Second: math.MaxInt,
@@ -48,7 +53,7 @@ func LeastThreeSerial(slice []int) Result {
 	return result
 }
 
-func LeastThreeBlocking(slice []int, workerCount int) Result {
+func LeastThreeBlocking(slice []int64, workerCount int) Result {
 	var mu sync.RWMutex
 	result := Result{
 		First:  math.MaxInt,
@@ -62,7 +67,7 @@ func LeastThreeBlocking(slice []int, workerCount int) Result {
 		}
 		close(jobs)
 	}()
-	worker := func(slice []int, jobs <-chan int, result *Result, mu *sync.RWMutex) {
+	worker := func(slice []int64, jobs <-chan int, result *Result, mu *sync.RWMutex) {
 		for i := range jobs {
 			mu.Lock()
 			if slice[i] < result.First {
@@ -90,13 +95,12 @@ func LeastThreeBlocking(slice []int, workerCount int) Result {
 	return result
 }
 
-func ThreeLeastAtomic(slice []int, workersCount int) Result {
-	var v atomic.Value
-	v.Store(&Result{
+func LeastThreeAtomic(slice []int64, workersCount int) Result {
+	r := &Result{
 		First:  math.MaxInt,
 		Second: math.MaxInt,
 		Third:  math.MaxInt,
-	})
+	}
 
 	jobs := make(chan int, len(slice))
 	go func() {
@@ -106,40 +110,41 @@ func ThreeLeastAtomic(slice []int, workersCount int) Result {
 		close(jobs)
 	}()
 
-	worker := func(slice []int, jobs <-chan int, result atomic.Value) {
+	worker := func(slice []int64, jobs <-chan int, result *Result) {
 		for i := range jobs {
-			res := v.Load()
-			result, _ := res.(Result)
 			if slice[i] < result.First {
-				//atomic.CompareAndSwapPointer(&unsafe.Pointer(&result.Third), unsafe.Pointer(&result.Second))
-				result.Third = result.Second
-				result.Second = result.First
-				result.First = slice[i]
+				atomic.CompareAndSwapInt64(&result.Third, result.Third, result.Second)  //result.Third = result.Second ??
+				atomic.CompareAndSwapInt64(&result.Second, result.Second, result.First) //result.Second = result.First
+				atomic.CompareAndSwapInt64(&result.First, result.First, slice[i])       //result.First = slice[i]
 			} else if slice[i] < result.Second {
-				result.Third = result.Second
-				result.Second = slice[i]
+				atomic.CompareAndSwapInt64(&result.Third, result.Third, result.Second) //result.Third = result.Second
+				atomic.CompareAndSwapInt64(&result.Second, result.Second, slice[i])    //result.Second = slice[i]
 			} else if slice[i] < result.Third {
-				result.Third = slice[i]
+				atomic.CompareAndSwapInt64(&result.Third, result.Third, slice[i]) //result.Third = slice[i]
 			}
 		}
 	}
+
 	var wg sync.WaitGroup
 	wg.Add(workersCount)
+
 	for i := 0; i < workersCount; i++ {
 		go func() {
-			worker(slice, jobs, v)
+			worker(slice, jobs, r)
 			defer wg.Done()
 		}()
 	}
 	wg.Wait()
-	r := v.Load().(Result)
-	return r
 
+	return *r
 }
 
 func main() {
 	arr := GenerateSlice(variant)
 	fmt.Println(arr)
-	min3 := LeastThreeBlocking(arr, 16)
+	//toTest := []int64{
+	//	1, 3, 5, -100, 534, -65, 0,
+	//}
+	min3 := LeastThreeBlocking(arr, 128)
 	fmt.Println(min3)
 }

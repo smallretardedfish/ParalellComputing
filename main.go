@@ -5,7 +5,7 @@ import (
 )
 
 type foo struct {
-	A int
+	B int
 }
 type bar struct {
 	B int
@@ -13,7 +13,7 @@ type bar struct {
 
 func main() {
 	var v interface{}
-	var val foo
+	var val = foo{B: 228}
 	v = val
 	vv, _ := v.(bar)
 	fmt.Println(vv.B)

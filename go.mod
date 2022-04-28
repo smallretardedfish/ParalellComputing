@@ -1,6 +1,6 @@
 module github.com/ParallelComputing
 
-go 1.17
+go 1.18
 
 require gonum.org/v1/plot v0.10.0
 
