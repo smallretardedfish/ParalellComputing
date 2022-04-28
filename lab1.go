@@ -5,6 +5,7 @@ import (
 	"github.com/ParallelComputing/plotting"
 	"log"
 	"math/rand"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -194,6 +195,7 @@ func main() {
 	//	log.Println(err)
 	//	return
 	//}
+	fmt.Println(runtime.NumCPU())
 	storage := plotting.NewStorage()
 	WriteTable(storage)
 }
