@@ -19,19 +19,22 @@ type Processor struct {
 	Q3 Queue
 }
 type Process struct {
-	ID   int
-	data interface{}
+	ID   int64
+	data any
 }
 
 type Generator1 struct {
 	Mu      sync.Mutex
-	counter int
+	counter int64
 }
 
 type Generator2 struct {
+	Mu      sync.Mutex
+	counter int64
 }
 
 type Queue struct {
+	q chan Process
 }
 
 func main() {

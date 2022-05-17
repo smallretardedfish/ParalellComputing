@@ -120,11 +120,12 @@ func MergeIfInFirstPromise(slice1Pr, slice2Pr *async.Promise[[]int]) []int {
 	done := make(chan bool)
 	go func() {
 		sl1 = slice1Pr.Await()
-		sl1 = slice2Pr.Await()
+		sl2 = slice2Pr.Await()
 		done <- true
 	}()
 	<-done
-
+	fmt.Println(sl1)
+	fmt.Println(sl2)
 	return MergeIfPresentInFirst(sl1, sl2)
 }
 
