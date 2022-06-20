@@ -13,22 +13,24 @@ import (
 //При звільнені процесора черги проглядаються в наступному порядку: перша черга, третя черга, друга черга.
 //Визначити максимальну довжину черг і кількість перерваних процесів другого потоку.
 
+type Scheduler struct {
+	G1 Generator
+	G2 Generator
+}
+
 type Processor struct {
+	S  Scheduler
 	Q1 Queue
 	Q2 Queue
 	Q3 Queue
 }
+
 type Process struct {
 	ID   int64
 	data any
 }
 
-type Generator1 struct {
-	Mu      sync.Mutex
-	counter int64
-}
-
-type Generator2 struct {
+type Generator struct {
 	Mu      sync.Mutex
 	counter int64
 }
