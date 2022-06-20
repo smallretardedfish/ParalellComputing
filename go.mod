@@ -5,7 +5,9 @@ go 1.18
 require gonum.org/v1/plot v0.10.0
 
 require (
+	github.com/EbicHecker/queue v0.4.1 // indirect
 	github.com/ajstarks/svgo v0.0.0-20211024235047-1546f124cd8b // indirect
+	github.com/enriquebris/goconcurrentqueue v0.6.3 // indirect
 	github.com/fogleman/gg v1.3.0 // indirect
 	github.com/go-fonts/liberation v0.2.0 // indirect
 	github.com/go-latex/latex v0.0.0-20210823091927-c0d11ff05a81 // indirect
